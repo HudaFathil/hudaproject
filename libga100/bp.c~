@@ -31,16 +31,16 @@ main(argc, argv)
    printf("GA config read successfully\n");
 
    read_packages(ga_info->user_data);
+   
    ga_info->chrom_len = Num_Pkgs;
 
 if(argc > 1)
-{X_select(ga_info, argv[1]);
-};
+ {X_select(ga_info, argv[1]);
+ };
    /*--- Run the GA ---*/
    printf("Running GA\n");
    GA_run(ga_info);
    printf("GA run completed\n");
-
    printf("Sum of packages weight = %f\n\n", Sum_Pkgs);
 }
 
