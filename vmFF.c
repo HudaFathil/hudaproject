@@ -7,18 +7,21 @@
 int eval_vms();    /*--- Forward declaration ---*/ 
                      /*these variables can be used in any part of this program*/ 
 
-#define MAXVMS 100    /* The maximum number of tasks */ 
+#define MAXVMS 500    /* The maximum number of tasks */ 
 struct{ 
 	float time, 
 	      mem,
-               cpu; 
+               cpu;
+         
 } VM[MAXVMS]; 
-
+ 
 int Num_VMs; 
 int Num_Nodes;
 float Node_CPU;
 float Node_MEM;
-float no_of_nodes;
+float make_time;
+float bins;
+
 /*---------------------------------------------------------------------------- 
 | main() 
 ----------------------------------------------------------------------------*/ 
@@ -32,9 +35,7 @@ main(argc, argv)
    printf("Reading GA config\n"); 
    ga_info = GA_config("vmtest.cfg", eval_vms); 
    printf("GA config read successfully\n"); 
-
    read_vms(ga_info->user_data); 
-   
    ga_info->chrom_len = Num_VMs; 
 
 if(argc > 1) 
@@ -44,9 +45,12 @@ if(argc > 1)
  /*--- Run the GA ---*/ 
    printf("Running GA\n"); 
    GA_run(ga_info); 
-   printf("GA run completed\n"); 
-printf("Total used nodes=%G\n",no_of_nodes);
-   
+
+   printf("the Best Makespan=%f, The Best server required=%f\n", ga_info->best->Makespan, ga_info->best->nodes);
+printf("The %d vms will be deploying to %f as:\n", Num_VMs,ga_info->best->nodes);
+
+printf("GA run completed\n"); 
+printf("The total Makespan=%f, The total server required=%f\n", make_time, bins);   
 } 
 
 /*---------------------------------------------------------------------------- 
@@ -55,9 +59,9 @@ printf("Total used nodes=%G\n",no_of_nodes);
 int eval_vms(chrom) 
    Chrom_Ptr chrom; 
 { 
-   int i; 
+int i; 
 float fit_fun, tot_time, max_time;
-float tot_mem, vm_time, vm_mem, vm_cpu, tot_cpu; 
+float tot_mem, vm_time, vm_mem, vm_cpu, tot_cpu, no_of_nodes; 
 
 /* Trivial case no VMs */ 
    if(chrom->length < 1)  { 
@@ -74,46 +78,53 @@ tot_cpu = 0.0;
 no_of_nodes =1.0;
 
 /*--Place each Task using next fit Its 2-D Multi Capacity bin Packing---- */ 
-for(i = 0; i < chrom->length; i++)  {
-	no_of_nodes +=1; 
+for(i = 0; i < chrom->length; i++)  
+     {
 	vm_time = VM[(int)chrom->gene[i]-1].time; 
    	vm_mem = VM[(int)chrom->gene[i]-1].mem; 
-            vm_cpu = VM[(int)chrom->gene[i]-1].cpu;
-  
- /* ---Place VM on Bins----*/ 
+        vm_cpu = VM[(int)chrom->gene[i]-1].cpu;
+        
+        /* ---Place VM on Bins----*/ 
    
-   if(vm_mem + tot_mem > Node_MEM ||  vm_cpu + tot_cpu > Node_CPU ) {/*--Too much memory or CPU---*/ 
+   if(vm_mem + tot_mem > Node_MEM ||  vm_cpu + tot_cpu > Node_CPU ) 
+     {                              /*Too muchmemory or CPU*/ 
+    no_of_nodes++;   
+      if(tot_time >= max_time)
+	{
+         max_time = tot_time;
+        }
+       tot_time = 0.0;
        tot_mem = vm_mem;
        tot_cpu   = vm_cpu;
-       tot_time += vm_time; 
-       max_time = 0;	 
+       tot_time = vm_time; 	 
       } 
 	else { 
-	   tot_time += vm_time;
-               tot_mem += vm_mem;
-               tot_cpu += vm_cpu;
-	} 
-
-/*__Find the longest time at the node--*/ 
-
-if(vm_time > max_time) { 
-max_time = vm_time; 
-}} 
-fit_fun = no_of_nodes*tot_time;
-chrom->fitness = fit_fun; 
+	tot_time += vm_time;
+        tot_mem += vm_mem;
+        tot_cpu += vm_cpu;
+	      } 
 } 
+/*compare the last bin tot time longest time at the node--*/ 
 
+if(tot_time >= max_time)
+	{max_time = tot_time;} 
+make_time = max_time;
+bins = no_of_nodes;
+fit_fun = no_of_nodes*max_time;
+chrom->fitness = fit_fun;
+chrom->Makespan = max_time;
+chrom->nodes = no_of_nodes; 
+} 
 /*--------------------------------------------------------------------------------------------- 
 |read data from file 
----------------------------------------------------------------------------------------------------*/ 
-
-read_vms(filename) 
- char *filename; 
+--------------------------------------------------------------------------------------
+*/read_vms(filename) 
+   char *filename; 
 { 
   FILE *fid; 
   int i; 
  
-  /*--open datafile----*/ 
+   /*--open datafile----*/ 
   if((fid = fopen(filename,"r")) == NULL) 
   { 
    printf("Errors in opening the packages datafile <%s>\n", filename); 
@@ -144,9 +155,6 @@ fscanf(fid,"%f%f", &Node_CPU, &Node_MEM);
   for(i=0; i < Num_VMs; i++) 
    
      fscanf(fid,"%f%f%f", &VM[i].time, &VM[i].cpu, &VM[i].mem); 
-     
-  
-
-/*---Close the file--*/ 
-fclose(fid); 
+fclose(fid);     
+                   /*---Close the file--*/  
 } 

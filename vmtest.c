@@ -7,33 +7,52 @@
 int eval_vms();    /*--- Forward declaration ---*/ 
                      /*these variables can be used in any part of this program*/ 
 
+<<<<<<< HEAD
 #define MAXVMS 600    /* The maximum number of tasks */ 
 struct{ 
 	float time, 
 	      mem,
               cpu; 
+=======
+#define MAXVMS 100    /* The maximum number of tasks */ 
+struct{ 
+	float time, 
+	      mem,
+               cpu; 
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
 } VM[MAXVMS]; 
 
 int Num_VMs; 
 int Num_Nodes;
 float Node_CPU;
 float Node_MEM;
+<<<<<<< HEAD
 float make_time;
 int vm_id[MAXVMS];
 int bin_id[MAXVMS];
 
+=======
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
 /*---------------------------------------------------------------------------- 
 | main() 
 ----------------------------------------------------------------------------*/ 
 main(argc, argv) 
    int  argc; 
    char *argv[]; 
+<<<<<<< HEAD
 { int i;
+=======
+{ 
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
    GA_Info_Ptr ga_info; 
 
    /*--- Initialize the genetic algorithm ---*/ 
    printf("Reading GA config\n"); 
+<<<<<<< HEAD
    ga_info = GA_config("vmtest100.cfg", eval_vms); 
+=======
+   ga_info = GA_config("vmtest.cfg", eval_vms); 
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
    printf("GA config read successfully\n"); 
 
    read_vms(ga_info->user_data); 
@@ -45,6 +64,7 @@ if(argc > 1)
  }; 
  
  /*--- Run the GA ---*/ 
+<<<<<<< HEAD
   printf("Running GA\n"); 
    GA_run(ga_info); 
 printf("---------------------------------\n");
@@ -64,6 +84,13 @@ for (i=0;i<Num_VMs;i++)
 printf("]\n");
 printf("GA run completed\n");
      
+=======
+   printf("Running GA\n"); 
+   GA_run(ga_info); 
+   printf("the total Makespan=%f, the total server required=%f\n", ga_info->best->Makespan, ga_info->best->nodes);
+   printf("GA run completed\n"); 
+   
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
 } 
 
 /*---------------------------------------------------------------------------- 
@@ -72,6 +99,7 @@ printf("GA run completed\n");
 int eval_vms(chrom) 
    Chrom_Ptr chrom; 
 { 
+<<<<<<< HEAD
 int i; 
 int vm_index[chrom->length];/*temp var to get vm index*/
 int bin_used[chrom->length];
@@ -81,6 +109,11 @@ float vm_cpu,vm_mem, tot_cpu, no_of_nodes;
 float f_bin_cpu, f_bin_mem;
 float tot_fbins_mem, tot_fbins_cpu;
  
+=======
+   int i; 
+float fit_fun, tot_time, max_time;
+float tot_mem, vm_time, vm_mem, vm_cpu, tot_cpu, no_of_nodes; 
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
 
 /* Trivial case no VMs */ 
    if(chrom->length < 1)  { 
@@ -94,6 +127,7 @@ tot_time = 0.0;
 max_time = 0.0; 
 tot_mem = 0.0; 
 tot_cpu = 0.0; 
+<<<<<<< HEAD
 no_of_nodes = 1;
 f_bin_cpu = 0.0;
 f_bin_mem = 0.0;
@@ -158,6 +192,42 @@ fit_fun = fit_fun_mem + fit_fun_cpu;
 chrom->fitness = fit_fun;
 chrom->nodes = no_of_nodes; 
 chrom->makespan = make_time;
+=======
+no_of_nodes =1.0;
+
+/*--Place each Task using next fit Its 2-D Multi Capacity bin Packing---- */ 
+for(i = 0; i < chrom->length; i++)  
+     {
+	vm_time = VM[(int)chrom->gene[i]-1].time; 
+   	vm_mem = VM[(int)chrom->gene[i]-1].mem; 
+        vm_cpu = VM[(int)chrom->gene[i]-1].cpu;
+  
+ /* ---Place VM on Bins----*/ 
+   
+   if(vm_mem + tot_mem > Node_MEM ||  vm_cpu + tot_cpu > Node_CPU ) 
+{                              /*--Too much memory or CPU---*/ 
+    no_of_nodes++;     
+  if(tot_time >= max_time)
+	{max_time = tot_time;
+        }
+       tot_time = 0.0;
+       tot_mem = vm_mem;
+       tot_cpu   = vm_cpu;
+       tot_time = vm_time; 	 
+      } 
+	else { 
+	   tot_time += vm_time;
+               tot_mem += vm_mem;
+               tot_cpu += vm_cpu;
+	} 
+} /*compare the last bin tot time longest time at the node--*/ 
+if(tot_time >= max_time)
+	{max_time = tot_time;} 
+fit_fun = no_of_nodes*max_time;
+chrom->fitness = fit_fun;
+chrom->Makespan = max_time;
+chrom->nodes = no_of_nodes; 
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
 } 
 
 /*--------------------------------------------------------------------------------------------- 
@@ -179,6 +249,10 @@ read_vms(filename)
 
  /*--get number of Nodes----*/ 
 fscanf(fid,"%d",&Num_Nodes);
+<<<<<<< HEAD
+=======
+printf("Number of free nodes in the server are:,%d\n", Num_Nodes);
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
 
   /*--get number of VMs----*/ 
 fscanf(fid,"%d", &Num_VMs); 
@@ -188,6 +262,10 @@ fscanf(fid,"%d", &Num_VMs);
     printf("Number of VMS ,%d, out of bounds [1...%d]\n", Num_VMs, MAXVMS); 
     exit(1); 
   } 
+<<<<<<< HEAD
+=======
+printf("Number of VMS to deploy are,%d\n", Num_VMs);
+>>>>>>> a5e427bb9ce6b924e382488f2021a684c57cece0
 
 /*get the CPUand Memory constraints for any node*/
 
