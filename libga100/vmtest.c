@@ -18,6 +18,9 @@ int Num_VMs;
 int Num_Nodes;
 float Node_CPU;
 float Node_MEM;
+float no_of_nodes;
+float tot_time;
+
 /*---------------------------------------------------------------------------- 
 | main() 
 ----------------------------------------------------------------------------*/ 
@@ -44,7 +47,8 @@ if(argc > 1)
    printf("Running GA\n"); 
    GA_run(ga_info); 
    printf("GA run completed\n"); 
-   
+printf("Total used nodes=%G\n",no_of_nodes);
+   printf("Total Time is=%G\n",tot_time);
 } 
 
 /*---------------------------------------------------------------------------- 
@@ -54,8 +58,8 @@ int eval_vms(chrom)
    Chrom_Ptr chrom; 
 { 
    int i; 
-float fit_fun, tot_time, max_time;
-float tot_mem, vm_time, vm_mem, vm_cpu, tot_cpu, no_of_nodes; 
+float fit_fun,max_time;
+float tot_mem, vm_time, vm_mem, vm_cpu, tot_cpu; 
 
 /* Trivial case no VMs */ 
    if(chrom->length < 1)  { 

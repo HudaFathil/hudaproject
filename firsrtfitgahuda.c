@@ -7,30 +7,36 @@
 int eval_vms();    /*--- Forward declaration ---*/ 
                      /*these variables can be used in any part of this program*/ 
 
-#define MAXVMS 100    /* The maximum number of tasks */ 
+#define MAXVMS 600 
+#define MAXSER 500   /* The maximum number of tasks */ 
 struct{ 
-	float time, 
-	      mem,
-               cpu; 
+	float mem,
+              cpu; 
 } VM[MAXVMS]; 
+struct{ 
+	float mem,
+              cpu; 
+} Serv[MAXSER]; 
 
 int Num_VMs; 
-int Num_Nodes;
+int Num_Serv;
 float Node_CPU;
 float Node_MEM;
-float no_of_nodes;
+int vm_id[MAXVMS];
+int bin_id[MAXVMS];
+
 /*---------------------------------------------------------------------------- 
 | main() 
 ----------------------------------------------------------------------------*/ 
 main(argc, argv) 
    int  argc; 
    char *argv[]; 
-{ 
+{ int i;
    GA_Info_Ptr ga_info; 
 
    /*--- Initialize the genetic algorithm ---*/ 
    printf("Reading GA config\n"); 
-   ga_info = GA_config("vmtest.cfg", eval_vms); 
+   ga_info = GA_config("vmtest100.cfg", eval_vms); 
    printf("GA config read successfully\n"); 
 
    read_vms(ga_info->user_data); 
@@ -42,11 +48,25 @@ if(argc > 1)
  }; 
  
  /*--- Run the GA ---*/ 
-   printf("Running GA\n"); 
+  printf("Running GA\n"); 
    GA_run(ga_info); 
-   printf("GA run completed\n"); 
-printf("Total used nodes=%G\n",no_of_nodes);
-   
+printf("---------------------------------\n");
+printf("[%d] of VMS are to deploy over [%d] servers\n", Num_VMs, Num_Nodes);
+printf("---------------------------------\n");
+printf("Total Used Nodes [%f]---Total Makespan[%f]\n",ga_info->best->nodes, ga_info->best->makespan);
+printf("---------------------------------\n");
+printf("The Make_time=%f\n", make_time);
+printf("---------------------------------\n");
+printf("The VMs will be distributed over server nodes as:\n");
+printf("---------------------------------\n");
+printf("[");     
+for (i=0;i<Num_VMs;i++)
+     {
+          printf("[%d to %d],",vm_id[i],bin_id[i]);
+     }
+printf("]\n");
+printf("GA run completed\n");
+     
 } 
 
 /*---------------------------------------------------------------------------- 
@@ -55,9 +75,17 @@ printf("Total used nodes=%G\n",no_of_nodes);
 int eval_vms(chrom) 
    Chrom_Ptr chrom; 
 { 
-   int i; 
-float fit_fun, tot_time, max_time;
-float tot_mem, vm_time, vm_mem, vm_cpu, tot_cpu; 
+int i; 
+int vm_index[chrom->length];/*temp var to get vm index*/
+int bin_used[chrom->length];
+double fit_fun; 
+float vm_cpu,vm_mem,no_of_nodes;
+
+ /*initiate  the servers cpu and memory arrays*/
+for(i=0; i < Num_Serv ; i++)
+{ serv[i].cpu = Node_CPU;
+  serv[i].mem = Node_MEM;
+}
 
 /* Trivial case no VMs */ 
    if(chrom->length < 1)  { 
@@ -67,40 +95,50 @@ float tot_mem, vm_time, vm_mem, vm_cpu, tot_cpu;
 
 /* Initialization*/ 
 
-tot_time = 0.0; 
-max_time = 0.0; 
-tot_mem = 0.0; 
-tot_cpu = 0.0; 
-no_of_nodes =1.0;
+x = 0;
+no_of_nodes = 0 ;
 
-/*--Place each Task using next fit Its 2-D Multi Capacity bin Packing---- */ 
+/*Place each Task by first-fit Its 2-D Multi Capacity bin Packing */ 
 for(i = 0; i < chrom->length; i++)  {
-	no_of_nodes +=1; 
-	vm_time = VM[(int)chrom->gene[i]-1].time; 
    	vm_mem = VM[(int)chrom->gene[i]-1].mem; 
-            vm_cpu = VM[(int)chrom->gene[i]-1].cpu;
-  
- /* ---Place VM on Bins----*/ 
+        vm_cpu = VM[(int)chrom->gene[i]-1].cpu;
+        vm_index[i] = (int)chrom->gene[i];
+/* ---Place VM on the first fit Bin----*/ 
    
-   if(vm_mem + tot_mem > Node_MEM ||  vm_cpu + tot_cpu > Node_CPU ) {/*--Too much memory or CPU---*/ 
-       tot_mem = vm_mem;
-       tot_cpu   = vm_cpu;
-       tot_time += vm_time; 
-       max_time = 0;	 
-      } 
-	else { 
-	   tot_time += vm_time;
-               tot_mem += vm_mem;
-               tot_cpu += vm_cpu;
-	} 
+   
+  for(j=0;j<Num_Serv;j++)
+     {
+         
+         if(serv[j].cpu>= vm_cpu&& serv[j].mem>=vm_cpu)
+         {
+            serv[j].cpu-=vm_cpu;
+            serv[j].mem-=vm_mem;
+            bin_used[i] = j+1;   
+         if(x <= j+1){
+            x=j+1;}
 
-/*__Find the longest time at the node--*/ 
-
-if(vm_time > max_time) { 
-max_time = vm_time; 
-}} 
-fit_fun = no_of_nodes*tot_time;
-chrom->fitness = fit_fun; 
+	  break;            
+             }      
+   if(j==s)  /* There is no enough servers to host all jobs*/
+         {printf("Not enough memory for process %d",i);
+          break;} 
+     
+   }  
+if(x >= no_of_nodes)
+            {no_of_nodes = x;
+            }else
+             { z=0;}
+}
+printf("The number of needed servers to save the %d jobs is : %d\n", jobs, z);
+}    
+} 
+for (i = 0; i < chrom->length; i++) 
+{
+vm_id[i] = vm_index[i];
+bin_id[i] = bin_used[i];
+}      /* copy 1D array to another*/
+chrom->fitness = no_of_nodes;
+chrom->nodes = no_of_nodes; 
 } 
 
 /*--------------------------------------------------------------------------------------------- 
@@ -121,8 +159,7 @@ read_vms(filename)
   } 
 
  /*--get number of Nodes----*/ 
-fscanf(fid,"%d",&Num_Nodes);
-printf("Number of free nodes in the server are:,%d\n", Num_Nodes);
+fscanf(fid,"%d",&Num_Serv);
 
   /*--get number of VMs----*/ 
 fscanf(fid,"%d", &Num_VMs); 
@@ -132,7 +169,6 @@ fscanf(fid,"%d", &Num_VMs);
     printf("Number of VMS ,%d, out of bounds [1...%d]\n", Num_VMs, MAXVMS); 
     exit(1); 
   } 
-printf("Number of VMS to deploy are,%d\n", Num_VMs);
 
 /*get the CPUand Memory constraints for any node*/
 
@@ -143,7 +179,7 @@ fscanf(fid,"%f%f", &Node_CPU, &Node_MEM);
 
   for(i=0; i < Num_VMs; i++) 
    
-     fscanf(fid,"%f%f%f", &VM[i].time, &VM[i].cpu, &VM[i].mem); 
+     fscanf(fid,"%f%f",  &VM[i].cpu, &VM[i].mem); 
      
   
 
