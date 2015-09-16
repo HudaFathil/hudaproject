@@ -7,8 +7,8 @@
 int eval_vms();    /*--- Forward declaration ---*/ 
                      /*these variables can be used in any part of this program*/ 
 
-#define MAXVMS 600 
-#define MAXSER 500   /* The maximum number of tasks */ 
+#define MAXVMS 700 
+#define MAXSER 700   /* The maximum number of tasks */ 
 struct{ 
 	float mem,
               cpu; 
@@ -36,7 +36,7 @@ main(argc, argv)
 
    /*--- Initialize the genetic algorithm ---*/ 
    printf("Reading GA config\n"); 
-   ga_info = GA_config("vmtest100.cfg", eval_vms); 
+   ga_info = GA_config("vm.cfg", eval_vms); 
    printf("GA config read successfully\n"); 
 
    read_vms(ga_info->user_data); 
@@ -51,12 +51,11 @@ if(argc > 1)
   printf("Running GA\n"); 
    GA_run(ga_info); 
 printf("---------------------------------\n");
-printf("[%d] of VMS are to deploy over [%d] servers\n", Num_VMs, Num_Nodes);
+printf("[%d] of VMS are to deploy over [%d] servers\n", Num_VMs, Num_Serv);
 printf("---------------------------------\n");
-printf("Total Used Nodes [%f]---Total Makespan[%f]\n",ga_info->best->nodes, ga_info->best->makespan);
+printf("Total Used Nodes [%d]",ga_info->best->nodes);
 printf("---------------------------------\n");
-printf("The Make_time=%f\n", make_time);
-printf("---------------------------------\n");
+
 printf("The VMs will be distributed over server nodes as:\n");
 printf("---------------------------------\n");
 printf("[");     
@@ -75,16 +74,15 @@ printf("GA run completed\n");
 int eval_vms(chrom) 
    Chrom_Ptr chrom; 
 { 
-int i; 
+int i, x,no_of_nodes, j, z; 
 int vm_index[chrom->length];/*temp var to get vm index*/
 int bin_used[chrom->length];
 double fit_fun; 
-float vm_cpu,vm_mem,no_of_nodes;
-
- /*initiate  the servers cpu and memory arrays*/
-for(i=0; i < Num_Serv ; i++)
-{ serv[i].cpu = Node_CPU;
-  serv[i].mem = Node_MEM;
+float vm_cpu,vm_mem;
+/*initiate  the servers cpu and memory arrays*/
+for(i=0; i < chrom->length ; i++)
+{ Serv[i].cpu = Node_CPU;
+  Serv[i].mem = Node_MEM;
 }
 
 /* Trivial case no VMs */ 
@@ -94,9 +92,8 @@ for(i=0; i < Num_Serv ; i++)
    } 
 
 /* Initialization*/ 
-
 x = 0;
-no_of_nodes = 0 ;
+no_of_nodes = 0;
 
 /*Place each Task by first-fit Its 2-D Multi Capacity bin Packing */ 
 for(i = 0; i < chrom->length; i++)  {
@@ -105,21 +102,20 @@ for(i = 0; i < chrom->length; i++)  {
         vm_index[i] = (int)chrom->gene[i];
 /* ---Place VM on the first fit Bin----*/ 
    
-   
   for(j=0;j<Num_Serv;j++)
      {
          
-         if(serv[j].cpu>= vm_cpu&& serv[j].mem>=vm_cpu)
+         if(Serv[j].cpu>= vm_cpu && Serv[j].mem>=vm_cpu)
          {
-            serv[j].cpu-=vm_cpu;
-            serv[j].mem-=vm_mem;
+            Serv[j].cpu-=vm_cpu;
+            Serv[j].mem-=vm_mem;
             bin_used[i] = j+1;   
          if(x <= j+1){
             x=j+1;}
 
 	  break;            
              }      
-   if(j==s)  /* There is no enough servers to host all jobs*/
+   if(j==Num_VMs)  /* There is no enough servers to host all jobs*/
          {printf("Not enough memory for process %d",i);
           break;} 
      
@@ -127,12 +123,10 @@ for(i = 0; i < chrom->length; i++)  {
 if(x >= no_of_nodes)
             {no_of_nodes = x;
             }else
-             { z=0;}
-}
-printf("The number of needed servers to save the %d jobs is : %d\n", jobs, z);
-}    
-} 
-for (i = 0; i < chrom->length; i++) 
+             { z=0;
+           }
+        }
+for(i=0;i<chrom->length;i++) 
 {
 vm_id[i] = vm_index[i];
 bin_id[i] = bin_used[i];
